@@ -28,6 +28,9 @@ router.post('/login', (req, res, next) => {
     API.findBy({username})
         .then(user => {
             if (user && bcrypt.compareSync(credentials.password, user.password)){
+                req.session.userId = user.id
+                console.log(user.id)
+                console.log(req.session.userId)
                 res.json({message: "Logged In!", uid: user.id})
             } else{
                 res.status(401).json({message: 'Invalid Credentials'})
@@ -38,7 +41,19 @@ router.post('/login', (req, res, next) => {
         })
 })
 
-router.get('/users', restricted, (req, res, next) => {
+router.get('/logout', (req, res) => {
+    if (req.session){
+        req.session.destroy(err => {
+            if (err){
+                res.send('error loggin out')
+            } else{
+                res.send('byeeee');
+            }
+        })
+    }
+})
+
+router.get('/users', protected, (req, res, next) => {
     API.getUsers()
         .then(reply => {
             res.json(reply)
@@ -50,7 +65,6 @@ router.get('/users', restricted, (req, res, next) => {
 
 function restricted(req, res, next){
     const {username, password} = req.headers;
-
     if (username && password){
         API.findBy({username})
             .then(user => {
@@ -67,5 +81,16 @@ function restricted(req, res, next){
         res.status(400).json({message: 'No credentials provided'})
     }
 }
+
+function protected(req, res, next){
+    console.log(req.session)
+    if (req.session && req.session.userId){
+        next()
+    } else {
+        res.status(401).json({message: 'you shall not pass!!'})
+    }
+}
+
+
 
 module.exports = router;
